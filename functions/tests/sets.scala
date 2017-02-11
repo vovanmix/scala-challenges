@@ -6,8 +6,6 @@ import org.scalatest.junit.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
 class FunSetSuite extends FunSuite {
-
-
   trait TestSets {
     val s1 = singletonSet(1)
     val s2 = singletonSet(2)
