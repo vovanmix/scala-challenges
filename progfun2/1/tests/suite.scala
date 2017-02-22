@@ -2,6 +2,7 @@ package streams
 
 import javafx.geometry.Pos
 
+import org.scalatest.Matchers._
 import org.scalatest.FunSuite
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
@@ -85,6 +86,40 @@ class BloxorzSuite extends FunSuite {
   test("startBlock") {
     new Level1 {
       assert(startBlock == Block(Pos(1,1), Pos(1,1)))
+    }
+  }
+
+  test("neighbors") {
+    new Level1 {
+      val a = Block(Pos(1,1), Pos(1,1))
+      a.neighbors should equal (List(
+        (Block(Pos(1,-1), Pos(1,0)), Left),
+        (Block(Pos(1,2), Pos(1,3)), Right),
+        (Block(Pos(-1,1), Pos(0,1)), Up),
+        (Block(Pos(2,1), Pos(3,1)), Down)
+      ))
+      val b = Block(Pos(1,1), Pos(1,2))
+      b.neighbors should equal (List(
+        (Block(Pos(1,0), Pos(1,0)), Left),
+        (Block(Pos(1,3), Pos(1,3)), Right),
+        (Block(Pos(0,1), Pos(0,2)), Up),
+        (Block(Pos(2,1), Pos(2,2)), Down)
+      ))
+    }
+  }
+
+  test("legalNeighbors") {
+    new Level1 {
+      val a = Block(Pos(0,0), Pos(0,0))
+      a.legalNeighbors should equal (List(
+        (Block(Pos(0,1), Pos(0,2)), Right),
+        (Block(Pos(1,0), Pos(2,0)), Down)
+      ))
+      val b = Block(Pos(0,0), Pos(0,1))
+      b.legalNeighbors should equal (List(
+        (Block(Pos(0,2), Pos(0,2)), Right),
+        (Block(Pos(1,0), Pos(1,1)), Down)
+      ))
     }
   }
 
