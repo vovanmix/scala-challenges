@@ -1,6 +1,7 @@
 package streams
 
 import common._
+import scala.reflect.runtime.universe._
 
 /**
  * This trait represents the layout and building blocks of the game
@@ -132,13 +133,20 @@ trait GameDef {
      * Returns the list of blocks that can be obtained by moving
      * the current block, together with the corresponding move.
      */
-    def neighbors: List[(Block, Move)] = ???
+    def neighbors: List[(Block, Move)] = List(
+      (left, Left),
+      (right, Right),
+      (up, Up),
+      (down, Down)
+    )
 
     /**
      * Returns the list of positions reachable from the current block
      * which are inside the terrain.
      */
-    def legalNeighbors: List[(Block, Move)] = ???
+    def legalNeighbors: List[(Block, Move)] = neighbors.flatMap{
+      case (bl, mv) => if (bl.isLegal) Some(bl, mv) else None
+    }
 
     /**
      * Returns `true` if the block is standing.
