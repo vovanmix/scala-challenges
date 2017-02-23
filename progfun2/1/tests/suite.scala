@@ -2,7 +2,7 @@ package streams
 
 import javafx.geometry.Pos
 
-import org.scalatest.Matchers._
+import org.scalatest.Matchers.{equal, _}
 import org.scalatest.FunSuite
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
@@ -123,12 +123,45 @@ class BloxorzSuite extends FunSuite {
     }
   }
 
+  test("done") {
+    new Level1 {
+      val a = Block(Pos(0,0), Pos(0,0))
+      assert(!done(a))
+      val b = Block(Pos(4,7), Pos(4,7))
+      assert(done(b))
+    }
+  }
+
+  test("neighborsWithHistory") {
+    new Level1 {
+      val actual = neighborsWithHistory(Block(Pos(1, 1), Pos(1, 1)), List(Left, Up)).take(2).toSet
+      val expected = Set(
+        (Block(Pos(1,2),Pos(1,3)), List(Right,Left,Up)),
+        (Block(Pos(2,1),Pos(3,1)), List(Down,Left,Up))
+      )
+      assert(actual == expected)
+    }
+  }
+
+  test("newNeighborsOnly") {
+    new Level1 {
+      assert(newNeighborsOnly(
+        Set(
+          (Block(Pos(1, 2), Pos(1, 3)), List(Right, Left, Up)),
+          (Block(Pos(2, 1), Pos(3, 1)), List(Down, Left, Up))
+        ).toStream,
+        Set(Block(Pos(1, 2), Pos(1, 3)), Block(Pos(1, 1), Pos(1, 1)))
+      ) == Set(
+        (Block(Pos(2, 1), Pos(3, 1)), List(Down, Left, Up))
+      ).toStream)
+    }
+  }
+
 	test("optimal solution for level 1") {
     new Level1 {
       assert(solve(solution) == Block(goal, goal))
     }
   }
-
 
 	test("optimal solution length for level 1") {
     new Level1 {
