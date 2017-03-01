@@ -100,4 +100,59 @@ class KMeansSuite extends FunSuite {
     val expected = GenSeq(new Point(2.5, 6.5, -1.75))
     checkUpdate(classified, oldMeans, expected)
   }
+
+  def checkConverged(eta: Double, oldMeans: GenSeq[Point], newMeans: GenSeq[Point], expected: Boolean) {
+    assert(converged(eta)(oldMeans, newMeans) == expected)
+  }
+
+  test("correctly detects converged if all not converged") {
+    checkConverged(
+      2,
+      GenSeq(
+        new Point(1, 8, -1),
+        new Point(2, 7, -1),
+        new Point(3, 6, -1)
+      ),
+      GenSeq(
+        new Point(3, 8, -1),
+        new Point(4, 8, -1),
+        new Point(5, 8, -1)
+      ),
+      false
+    )
+  }
+
+  test("correctly detects converged if only one not converged") {
+    checkConverged(
+      2,
+      GenSeq(
+        new Point(3, 8, -1),
+        new Point(1, 2, -1),
+        new Point(3, 6, -1)
+      ),
+      GenSeq(
+        new Point(3, 8, -1),
+        new Point(2, 7, -1),
+        new Point(3, 6, -1)
+      ),
+      false
+    )
+  }
+
+  test("correctly detects all converged") {
+    checkConverged(
+      2,
+      GenSeq(
+        new Point(1, 8, -1),
+        new Point(2, 7, -1),
+        new Point(3, 6, -1)
+      ),
+      GenSeq(
+        new Point(2, 8, -1),
+        new Point(2, 7, 0),
+        new Point(3, 5, -1)
+      ),
+      true
+    )
+  }
 }
