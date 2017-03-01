@@ -87,9 +87,7 @@ class Point(val x: Double, val y: Double, val z: Double) {
   override def toString = s"(${round(x)}, ${round(y)}, ${round(z)})"
 }
 
-
 object KMeansRunner {
-
   val standardConfig = config(
     Key.exec.minWarmupRuns -> 20,
     Key.exec.maxWarmupRuns -> 40,
@@ -119,5 +117,4 @@ object KMeansRunner {
     println(s"parallel time: $partime ms")
     println(s"speedup: ${seqtime / partime}")
   }
-
 }
