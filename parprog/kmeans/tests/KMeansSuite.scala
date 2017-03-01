@@ -101,6 +101,3 @@ class KMeansSuite extends FunSuite {
     checkUpdate(classified, oldMeans, expected)
   }
 }
-
-
-  
