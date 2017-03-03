@@ -51,15 +51,27 @@ package object barneshut {
     def insert(b: Body): Quad = Leaf(centerX, centerY, size, Seq(b))
   }
 
-  case class Fork(
-                   nw: Quad, ne: Quad, sw: Quad, se: Quad
-                 ) extends Quad {
+  case class Fork(nw: Quad, ne: Quad, sw: Quad, se: Quad) extends Quad {
     val centerX: Float = nw.centerX + nw.size / 2f
     val centerY: Float = nw.centerY + nw.size / 2f
     val size: Float = nw.size + ne.size
     val mass: Float = List(nw, ne, sw, se).foldLeft(0f) { _ + _.mass }
-    val massX: Float = List(nw, ne, sw, se).aggregate(0f) ( (a, b) => b.mass * b.massX + a, _+_ ) / mass
-    val massY: Float = List(nw, ne, sw, se).aggregate(0f) ( (a, b) => b.mass * b.massY + a, _+_ ) / mass
+    val massX: Float = mass match {
+      case m if m > 0 =>
+        List(nw, ne, sw, se).foldLeft(0f) {
+          case (a, b) if b.mass > 0 => b.mass * b.massX + a
+          case (a, _) => a
+        } / m
+      case _ => centerX
+    }
+    val massY: Float = mass match {
+      case m if m > 0 =>
+        List(nw, ne, sw, se).foldLeft(0f){
+          case (a, b) if b.mass > 0 => b.mass * b.massY + a
+          case (a, _) => a
+        } / mass
+      case _ => centerY
+    }
     val total: Int = List(nw, ne, sw, se).foldLeft(0) { _ + _.total }
 
     def insert(b: Body): Fork = (b.x, b.y) match {
@@ -72,26 +84,25 @@ package object barneshut {
 
   case class Leaf(centerX: Float, centerY: Float, size: Float, bodies: Seq[Body])
     extends Quad {
-    val mass : Float = bodies.aggregate(0f) ( (a, b) => a + b.mass, _+_ )
+    val mass : Float = bodies.foldLeft(0f) ( _ + _.mass )
     val (massX, massY) = (
-      bodies.aggregate(0f) ( (a, b) => b.mass * b.x + a, _+_ ) / mass : Float,
-      bodies.aggregate(0f) ( (a, b) => b.mass * b.y + a, _+_ ) / mass : Float
+      bodies.foldLeft(0f) ( (a, b) => b.mass * b.x + a ) / mass : Float,
+      bodies.foldLeft(0f) ( (a, b) => b.mass * b.y + a ) / mass : Float
     )
     val total: Int = bodies.length
-    def insert(b: Body): Quad = {
-      if (bodies.length > minimumSize) {
+    def insert(b: Body): Quad = size match {
+      case s if s > minimumSize =>
         val newSize = size / 2
         val centerFirst = newSize / 2
         val centerSecond = newSize / 2 + newSize
-        bodies.foldLeft(Fork(
-          Leaf(centerFirst , centerFirst  , newSize, Seq()),
-          Leaf(centerSecond, centerFirst  , newSize, Seq()),
-          Leaf(centerFirst , centerSecond , newSize, Seq()),
-          Leaf(centerSecond, centerSecond , newSize, Seq())
+        (b +: bodies).foldLeft(Fork(
+          Empty(centerFirst , centerFirst  , newSize),
+          Empty(centerSecond, centerFirst  , newSize),
+          Empty(centerFirst , centerSecond , newSize),
+          Empty(centerSecond, centerSecond , newSize)
         ))( _.insert(_) )
-      } else {
+      case _ =>
         Leaf(centerX, centerY, size, b +: bodies)
-      }
     }
   }
 
@@ -145,15 +156,15 @@ package object barneshut {
         case Leaf(_, _, _, bodies) =>
           bodies.foreach { b => addForce(b.mass, b.x, b.y) }
         // add force contribution of each body by calling addForce
-        case Fork(nw, ne, sw, se) =>
-          if (quad.size / distance(x, y ,quad.centerX, quad. centerY) < theta) {
+        case Fork(nw, ne, sw, se) => quad.size / distance(x, y ,quad.centerX, quad. centerY) match {
+          case d if d < theta =>
             addForce(quad.mass, quad.massX, quad.massY)
-          } else {
+          case _ =>
             traverse(nw)
             traverse(ne)
             traverse(sw)
             traverse(se)
-          }
+        }
         // see if node is far enough from the body,
         // or recursion is needed
       }
@@ -188,14 +199,14 @@ package object barneshut {
         case y if y >= sectorPrecision => sectorPrecision - 1
         case y => y
       }
-      matrix(yCell * sectorPrecision + xCell) += b
+      apply(xCell, yCell) += b
       this
     }
 
     def apply(x: Int, y: Int) = matrix(y * sectorPrecision + x)
 
     def combine(that: SectorMatrix): SectorMatrix = {
-//      this.matrix = (this.matrix, that.matrix).zipped map (_ combine  _)
+      //      this.matrix = (this.matrix, that.matrix).zipped map (_ combine  _)
       for(i <- matrix.indices) matrix(i) = matrix(i).combine(that.matrix(i))
       this
     }
