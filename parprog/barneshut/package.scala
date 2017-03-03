@@ -52,35 +52,26 @@ package object barneshut {
   }
 
   case class Fork(
-    nw: Quad, ne: Quad, sw: Quad, se: Quad
-  ) extends Quad {
-    val centerX: Float = nw.centerX + nw.size / 2
-    val centerY: Float = nw.centerY + nw.size / 2
-    val size: Float = nw.size * 2
+                   nw: Quad, ne: Quad, sw: Quad, se: Quad
+                 ) extends Quad {
+    val centerX: Float = nw.centerX + nw.size / 2f
+    val centerY: Float = nw.centerY + nw.size / 2f
+    val size: Float = nw.size + ne.size
     val mass: Float = List(nw, ne, sw, se).foldLeft(0f) { _ + _.mass }
     val massX: Float = List(nw, ne, sw, se).aggregate(0f) ( (a, b) => b.mass * b.massX + a, _+_ ) / mass
     val massY: Float = List(nw, ne, sw, se).aggregate(0f) ( (a, b) => b.mass * b.massY + a, _+_ ) / mass
     val total: Int = List(nw, ne, sw, se).foldLeft(0) { _ + _.total }
 
-    def insert(b: Body): Fork = {
-      if (b.x < centerX) {
-        if (b.y < centerY) {
-          Fork(nw.insert(b), ne, sw, se)
-        } else {
-          Fork(nw, ne, sw.insert(b), se)
-        }
-      } else {
-        if (b.y < centerY) {
-          Fork(nw, ne.insert(b), sw, se)
-        } else {
-          Fork(nw, ne, sw, se.insert(b))
-        }
-      }
+    def insert(b: Body): Fork = (b.x, b.y) match {
+      case (x, y) if x <  centerX && y <  centerY => Fork(nw.insert(b), ne, sw, se)
+      case (x, y) if x >= centerX && y <  centerY => Fork(nw, ne.insert(b), sw, se)
+      case (x, y) if x <  centerX && y >= centerY => Fork(nw, ne, sw.insert(b), se)
+      case (x, y) if x >= centerX && y >= centerY => Fork(nw, ne, sw, se.insert(b))
     }
   }
 
   case class Leaf(centerX: Float, centerY: Float, size: Float, bodies: Seq[Body])
-  extends Quad {
+    extends Quad {
     val mass : Float = bodies.aggregate(0f) ( (a, b) => a + b.mass, _+_ )
     val (massX, massY) = (
       bodies.aggregate(0f) ( (a, b) => b.mass * b.x + a, _+_ ) / mass : Float,
@@ -97,7 +88,7 @@ package object barneshut {
           Leaf(centerSecond, centerFirst  , newSize, Seq()),
           Leaf(centerFirst , centerSecond , newSize, Seq()),
           Leaf(centerSecond, centerSecond , newSize, Seq())
-        )){ (acc, v) => acc.insert(v) }
+        ))( _.insert(_) )
       } else {
         Leaf(centerX, centerY, size, b +: bodies)
       }
@@ -150,10 +141,10 @@ package object barneshut {
 
       def traverse(quad: Quad): Unit = (quad: Quad) match {
         case Empty(_, _, _) =>
-          // no force
+        // no force
         case Leaf(_, _, _, bodies) =>
           bodies.foreach { b => addForce(b.mass, b.x, b.y) }
-          // add force contribution of each body by calling addForce
+        // add force contribution of each body by calling addForce
         case Fork(nw, ne, sw, se) =>
           if (quad.size / distance(x, y ,quad.centerX, quad. centerY) < theta) {
             addForce(quad.mass, quad.massX, quad.massY)
@@ -163,8 +154,8 @@ package object barneshut {
             traverse(sw)
             traverse(se)
           }
-          // see if node is far enough from the body,
-          // or recursion is needed
+        // see if node is far enough from the body,
+        // or recursion is needed
       }
 
       traverse(quad)
@@ -187,14 +178,26 @@ package object barneshut {
     for (i <- 0 until matrix.length) matrix(i) = new ConcBuffer
 
     def +=(b: Body): SectorMatrix = {
-      ???
+      val xCell = math.floor(b.x / sectorSize).toInt match {
+        case x if x < 0 => 0
+        case x if x >= sectorPrecision => sectorPrecision - 1
+        case x => x
+      }
+      val yCell = math.floor(b.y / sectorSize).toInt match {
+        case y if y < 0 => 0
+        case y if y >= sectorPrecision => sectorPrecision - 1
+        case y => y
+      }
+      matrix(yCell * sectorPrecision + xCell) += b
       this
     }
 
     def apply(x: Int, y: Int) = matrix(y * sectorPrecision + x)
 
     def combine(that: SectorMatrix): SectorMatrix = {
-      ???
+//      this.matrix = (this.matrix, that.matrix).zipped map (_ combine  _)
+      for(i <- matrix.indices) matrix(i) = matrix(i).combine(that.matrix(i))
+      this
     }
 
     def toQuad(parallelism: Int): Quad = {
@@ -242,7 +245,7 @@ package object barneshut {
       val totalTime = /*measure*/ {
         val startTime = System.currentTimeMillis()
         res = body
-        (System.currentTimeMillis() - startTime)
+        System.currentTimeMillis() - startTime
       }
 
       timeMap.get(title) match {
