@@ -42,7 +42,6 @@ class BarnesHutSuite extends FunSuite {
     assert(quad.total == 1, s"${quad.total} should be 1")
   }
 
-
   test("Fork with 3 empty quadrants and 1 leaf (nw)") {
     val b = new Body(123f, 18f, 26f, 0f, 0f)
     val nw = Leaf(17.5f, 27.5f, 5f, Seq(b))
@@ -59,17 +58,108 @@ class BarnesHutSuite extends FunSuite {
     assert(quad.total == 1, s"${quad.total} should be 1")
   }
 
-//   [Test Description] Fork with 4 empty quadrants [Observed Error] NaN did not equal 20.0 NaN should be 20f [Lost Points] 2
+  test("Fork with 4 empty quadrants ") {
+    val nw = Empty(17.5f, 27.5f, 5f)
+    val ne = Empty(22.5f, 27.5f, 5f)
+    val sw = Empty(17.5f, 32.5f, 5f)
+    val se = Empty(22.5f, 32.5f, 5f)
+    val quad = Fork(nw, ne, sw, se)
 
-//   [Test Description] 'insert' should work correctly on a leaf with center (1,1) and size <= minimumSize [Observed Error] asExpected was false expected Leaf(1.0,1.0,1.0E-5,List(barneshut.package$Body@c33b74f, barneshut.package$Body@130161f7)) found Fork(Leaf(2.5E-6,2.5E-6,5.0E-6,List()),Leaf(7.5E-6,2.5E-6,5.0E-6,List()),Leaf(2.5E-6,7.5E-6,5.0E-6,List()),Leaf(7.5E-6,7.5E-6,5.0E-6,List(barneshut.package$Body@c33b74f))) [Lost Points] 2
-//   [Test Description] Leaf.insert(b) should return a new Fork if size > minimumSize [Observed Error] FloatOps.DoubleOps(centerX.toDouble).~=(17.5) was false [Lost Points] 2
-//   [Test Description] Fork.insert(b) should insert recursively in the appropriate quadrant [Observed Error] FloatOps.DoubleOps(centerX.toDouble).~=(17.5) was false [Lost Points] 2
+    assert(quad.centerX == 20f)
+    assert(quad.centerY == 30f)
+    assert(quad.mass ~= 0f)
+    assert(quad.massX ~= 20f)
+    assert(quad.massY ~= 30f)
+    assert(quad.total == 0)
+  }
 
-//    [Test Description] 'insert' should work correctly on a leaf with center (1,1) and size 2 [Observed Error] Fork(Leaf(0.5,0.5,1.0,List(barneshut.package$Body@3c407114)),Leaf(1.5,0.5,1.0,List()),Leaf(0.5,1.5,1.0,List()),Leaf(1.5,1.5,1.0,List())) did not equal Fork(Leaf(0.5,0.5,1.0,List(barneshut.package$Body@3c407114)),Leaf(1.5,0.5,1.0,List(barneshut.package$Body@35ef1869)),Empty(0.5,1.5,1.0),Empty(1.5,1.5,1.0)) expected Fork(Leaf(0.5,0.5,1.0,List(barneshut.package$Body@3c407114)),Leaf(1.5,0.5,1.0,List(barneshut.package$Body@35ef1869)),Empty(0.5,1.5,1.0),Empty(1.5,1.5,1.0)) found Fork(Leaf(0.5,0.5,1.0,List(barneshut.package$Body@3c407114)),Leaf(1.5,0.5,1.0,List()),Leaf(0.5,1.5,1.0,List()),Leaf(1.5,1.5,1.0,List())) [Lost Points] 2
+  test("Fork.insert(b) should insert recursively in the appropriate quadrant") {
+    val b1 = new Body(123f, 18f, 26f, 0f, 0f)
+    val b2 = new Body(524.5f, 24.5f, 25.5f, 0f, 0f)
+    val b3 = new Body(245f, 22.4f, 41f, 0f, 0f)
 
-//    [Test Description] 'insert' should work correctly on a leaf with center (1,1) and size 2 [Observed Error] Fork(Leaf(0.5,0.5,1.0,List(barneshut.package$Body@3c407114)),Leaf(1.5,0.5,1.0,List()),Leaf(0.5,1.5,1.0,List()),Leaf(1.5,1.5,1.0,List())) did not equal Fork(Leaf(0.5,0.5,1.0,List(barneshut.package$Body@3c407114)),Leaf(1.5,0.5,1.0,List(barneshut.package$Body@35ef1869)),Empty(0.5,1.5,1.0),Empty(1.5,1.5,1.0)) expected Fork(Leaf(0.5,0.5,1.0,List(barneshut.package$Body@3c407114)),Leaf(1.5,0.5,1.0,List(barneshut.package$Body@35ef1869)),Empty(0.5,1.5,1.0),Empty(1.5,1.5,1.0)) found Fork(Leaf(0.5,0.5,1.0,List(barneshut.package$Body@3c407114)),Leaf(1.5,0.5,1.0,List()),Leaf(0.5,1.5,1.0,List()),Leaf(1.5,1.5,1.0,List())) [Lost Points] 2
+    val nw = Leaf(17.5f, 27.5f, 5f, Seq(b1, b2))
+    val ne = Empty(22.5f, 27.5f, 5f)
+    val sw = Empty(17.5f, 32.5f, 5f)
+    val se = Empty(22.5f, 32.5f, 5f)
+    var quad = Fork(nw, ne, sw, se)
 
-//    [Test Description] Leaf.insert(b) should return another Leaf if size < minimumSize [Observed Error] Fork(Leaf(1.25E-6,1.25E-6,2.5E-6,List()),Leaf(3.75E-6,1.25E-6,2.5E-6,List()),Leaf(1.25E-6,3.75E-6,2.5E-6,List()),Leaf(3.75E-6,3.75E-6,2.5E-6,List(barneshut.package$Body@27ce24aa))) should be a Leaf [Lost Points] 2
+    quad = quad.insert(b3)
+    assert(quad.total == 3)
+    assert(quad.mass == 892.5f)
+    assert(quad.massX == 23.02773f)
+  }
+
+  test("Fork.insert(b) should insert recursively in the appropriate quadrant 2") {
+    val b1 = new Body(123f, 18f, 26f, 0f, 0f)
+    val b2 = new Body(524.5f, 24.5f, 25.5f, 0f, 0f)
+    val b3 = new Body(245f, 22.4f, 41f, 0f, 0f)
+
+    val nw = Empty(17.5f, 27.5f, 5f)
+    val ne = Empty(22.5f, 27.5f, 5f)
+    val sw = Empty(17.5f, 32.5f, 5f)
+    val se = Empty(22.5f, 32.5f, 5f)
+    var quad = Fork(nw, ne, sw, se)
+
+    quad = quad.insert(b1)
+    quad = quad.insert(b2)
+    quad = quad.insert(b3)
+    assert(quad.total == 3)
+    assert(quad.massX == 23.02773f)
+  }
+
+  test("'insert' should work correctly on a leaf with center (1,1) and size <= minimumSize") {
+    val b1 = new Body(123f, 18f, 26f, 0f, 0f)
+    val b2 = new Body(524.5f, 24.5f, 25.5f, 0f, 0f)
+    val b3 = new Body(245f, 22.4f, 41f, 0f, 0f)
+    val leaf = Leaf(17.5f, 27.5f, 0.000001f, Seq(b1, b2))
+
+    val newLeaf = leaf.insert(b3)
+    assert(newLeaf.massX == 23.02773f)
+  }
+
+  test("Leaf.insert(b) should return a new Fork if size > minimumSize") {
+    val b1 = new Body(123f, 18f, 26f, 0f, 0f)
+    val b2 = new Body(524.5f, 24.5f, 25.5f, 0f, 0f)
+    val b3 = new Body(245f, 22.4f, 41f, 0f, 0f)
+    val leaf = Leaf(17.5f, 27.5f, 0.1f, Seq(b1, b2))
+
+    val fork = leaf.insert(b3)
+    assert(fork.massX == 23.02773f)
+  }
+
+  test("Leaf.insert(b) should return a new Fork if size > minimumSize 2") {
+    val b1 = new Body(123f, 0.01f, 0f, 0f, 0f)
+    val b2 = new Body(524.5f, 24.5f, 25.5f, 0f, 0f)
+    val leaf = Leaf(17.5f, 27.5f, 0.1f, Seq(b1))
+
+    val fork = leaf.insert(b2)
+    val res: Int = fork match {
+      case Fork(nw, _, _, _) => nw match {
+        case Leaf(_, _, _, _) => 1
+        case Empty(_, _, _) => 2
+        case _ => 3
+      }
+      case _ => 4
+    }
+    assert(res == 1)
+  }
+
+//    [Test Description] Leaf.insert(b) should return a new Fork if size > minimumSize
+//    [Observed Error] nw of the Fork, Empty(2.5,2.5,5.0), should be a Leaf
+//    [Lost Points] 2
+
+//    [Test Description] Fork.insert(b) should insert recursively in the appropriate quadrant
+//    [Observed Error] nw of the Fork, Empty(2.5,2.5,5.0), should be a Leaf
+//    [Lost Points] 2
+
+//    [Test Description] 'computeSectorMatrix' should correctly work given 5 points within a boundary of size 96 when some points map to the same sector
+//    [Observed Error] ConcBuffer() had size 0 instead of expected size 1 bucket (0,2) should have size 1
+//    [Lost Points] 2
+
+//    [Test Description] 'computeSectorMatrix' should correctly add points to buckets given 7 points within a boundary of size 96
+//    [Observed Error] res was false Body 1 not found in the right sector in the sector matrix
+//    [Lost Points] 2
 
   test("Empty.insert(b) should return a Leaf with only that body") {
     val quad = Empty(51f, 46.3f, 5f)
@@ -120,17 +210,78 @@ class BarnesHutSuite extends FunSuite {
     boundaries.maxY = 97
     val sm = new SectorMatrix(boundaries, SECTOR_PRECISION)
     sm += body
-    val res = sm(2, 3).size == 1 && sm(2, 3).find(_ == body).isDefined
+    val res = sm(2, 3).size == 1 && sm(2, 3).exists(_ == body)
     assert(res, s"Body not found in the right sector")
   }
 
-//    [Test Description] 'SectorMatrix.combine' should correctly combine two sector matrices of size 96 that contain some points in the same sector [Observed Error] ConcBuffer(barneshut.package$Body@384ad17b) had size 1 instead of expected size 2 bucket (6,1) should have size 2 [Lost Points] 2
+  test("'SectorMatrix.combine' should correctly combine two sector matrices of size 96 that contain some points in the same sector") {
+    val body = new Body(5, 4, 4, 0.1f, 0.1f)
+    val boundaries = new Boundaries()
+    boundaries.minX = 1
+    boundaries.minY = 1
+    boundaries.maxX = 97
+    boundaries.maxY = 97
+    val sm = new SectorMatrix(boundaries, SECTOR_PRECISION)
+    sm += body
 
-//    [Test Description] 'SectorMatrix.combine' should correctly combine two sector matrices of size 96 containing points: (12, 34), (23, 45), (56, 9), (8, 79), (5, 99) [Observed Error] res was false Body 3 not found in the right sector in combined sector matrix [Lost Points] 2
+    val body2 = new Body(5, 5, 4, 0.1f, 0.1f)
+    val body3 = new Body(5, 44, 88, 0.1f, 0.1f)
+    val body4 = new Body(5, 98, 98, 0.1f, 0.1f)
+    val boundaries2 = new Boundaries()
+    boundaries2.minX = 3
+    boundaries2.minY = 3
+    boundaries2.maxX = 99
+    boundaries2.maxY = 99
+    val sm2 = new SectorMatrix(boundaries2, SECTOR_PRECISION)
+    sm2 += body2
+    sm2 += body3
+    sm2 += body4
 
-//    [Test Description] 'computeSectorMatrix' should correctly add points to buckets given 7 points within a boundary of size 96 [Observed Error] res was false Body 1 not found in the right sector in the sector matrix [Lost Points] 2
-  
-//    [Test Description] 'SectorMatrix.+=' should add a body at (25,47) to the correct bucket of a sector matrix of size 100 [Observed Error] res was false Body not found in the right sector. Hint: sector sizes could be fractions [Lost Points] 2
+    val sm3 = sm combine sm2
+    assert(sm3.apply(0, 0).size == 2)
+  }
+
+  test("'SectorMatrix.+=' should add a body at (25,47) to the correct bucket of a sector matrix of size 100") {
+    val body = new Body(5, 25, 47, 0.1f, 0.1f)
+    val boundaries = new Boundaries()
+    boundaries.minX = 1
+    boundaries.minY = 1
+    boundaries.maxX = 101
+    boundaries.maxY = 101
+    val sm = new SectorMatrix(boundaries, SECTOR_PRECISION)
+    sm += body
+    val res = sm(2, 3).size == 1 && sm(2, 3).exists(_ == body)
+    assert(res, s"Body not found in the right sector")
+  }
+
+  test("'SectorMatrix.combine' should correctly combine two sector matrices of size 96 containing points: (12, 34), (23, 45), (56, 9), (8, 79), (5, 99)") {
+    val body1 = new Body(5, 12, 34, 0.1f, 0.1f)
+    val body2 = new Body(5, 23, 45, 0.1f, 0.1f)
+    val body3 = new Body(5, 56, 9, 0.1f, 0.1f)
+    val body4 = new Body(5, 8, 79, 0.1f, 0.1f)
+    val body5 = new Body(5, 5, 99, 0.1f, 0.1f)
+    val boundaries = new Boundaries()
+    boundaries.minX = 1
+    boundaries.minY = 1
+    boundaries.maxX = 97
+    boundaries.maxY = 97
+    val sm = new SectorMatrix(boundaries, SECTOR_PRECISION)
+    sm += body1
+    sm += body2
+
+    val boundaries2 = new Boundaries()
+    boundaries2.minX = 3
+    boundaries2.minY = 3
+    boundaries2.maxX = 99
+    boundaries2.maxY = 99
+    val sm2 = new SectorMatrix(boundaries2, SECTOR_PRECISION)
+    sm2 += body3
+    sm2 += body4
+    sm2 += body5
+
+    val sm3 = sm combine sm2
+    assert(sm3(4, 0).size == 1 && sm3(4, 0).exists(_ == body3))
+  }
 }
 
 
