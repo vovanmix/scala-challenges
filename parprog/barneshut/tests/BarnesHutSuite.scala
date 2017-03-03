@@ -59,6 +59,18 @@ class BarnesHutSuite extends FunSuite {
     assert(quad.total == 1, s"${quad.total} should be 1")
   }
 
+//   [Test Description] Fork with 4 empty quadrants [Observed Error] NaN did not equal 20.0 NaN should be 20f [Lost Points] 2
+
+//   [Test Description] 'insert' should work correctly on a leaf with center (1,1) and size <= minimumSize [Observed Error] asExpected was false expected Leaf(1.0,1.0,1.0E-5,List(barneshut.package$Body@c33b74f, barneshut.package$Body@130161f7)) found Fork(Leaf(2.5E-6,2.5E-6,5.0E-6,List()),Leaf(7.5E-6,2.5E-6,5.0E-6,List()),Leaf(2.5E-6,7.5E-6,5.0E-6,List()),Leaf(7.5E-6,7.5E-6,5.0E-6,List(barneshut.package$Body@c33b74f))) [Lost Points] 2
+//   [Test Description] Leaf.insert(b) should return a new Fork if size > minimumSize [Observed Error] FloatOps.DoubleOps(centerX.toDouble).~=(17.5) was false [Lost Points] 2
+//   [Test Description] Fork.insert(b) should insert recursively in the appropriate quadrant [Observed Error] FloatOps.DoubleOps(centerX.toDouble).~=(17.5) was false [Lost Points] 2
+
+//    [Test Description] 'insert' should work correctly on a leaf with center (1,1) and size 2 [Observed Error] Fork(Leaf(0.5,0.5,1.0,List(barneshut.package$Body@3c407114)),Leaf(1.5,0.5,1.0,List()),Leaf(0.5,1.5,1.0,List()),Leaf(1.5,1.5,1.0,List())) did not equal Fork(Leaf(0.5,0.5,1.0,List(barneshut.package$Body@3c407114)),Leaf(1.5,0.5,1.0,List(barneshut.package$Body@35ef1869)),Empty(0.5,1.5,1.0),Empty(1.5,1.5,1.0)) expected Fork(Leaf(0.5,0.5,1.0,List(barneshut.package$Body@3c407114)),Leaf(1.5,0.5,1.0,List(barneshut.package$Body@35ef1869)),Empty(0.5,1.5,1.0),Empty(1.5,1.5,1.0)) found Fork(Leaf(0.5,0.5,1.0,List(barneshut.package$Body@3c407114)),Leaf(1.5,0.5,1.0,List()),Leaf(0.5,1.5,1.0,List()),Leaf(1.5,1.5,1.0,List())) [Lost Points] 2
+
+//    [Test Description] 'insert' should work correctly on a leaf with center (1,1) and size 2 [Observed Error] Fork(Leaf(0.5,0.5,1.0,List(barneshut.package$Body@3c407114)),Leaf(1.5,0.5,1.0,List()),Leaf(0.5,1.5,1.0,List()),Leaf(1.5,1.5,1.0,List())) did not equal Fork(Leaf(0.5,0.5,1.0,List(barneshut.package$Body@3c407114)),Leaf(1.5,0.5,1.0,List(barneshut.package$Body@35ef1869)),Empty(0.5,1.5,1.0),Empty(1.5,1.5,1.0)) expected Fork(Leaf(0.5,0.5,1.0,List(barneshut.package$Body@3c407114)),Leaf(1.5,0.5,1.0,List(barneshut.package$Body@35ef1869)),Empty(0.5,1.5,1.0),Empty(1.5,1.5,1.0)) found Fork(Leaf(0.5,0.5,1.0,List(barneshut.package$Body@3c407114)),Leaf(1.5,0.5,1.0,List()),Leaf(0.5,1.5,1.0,List()),Leaf(1.5,1.5,1.0,List())) [Lost Points] 2
+
+//    [Test Description] Leaf.insert(b) should return another Leaf if size < minimumSize [Observed Error] Fork(Leaf(1.25E-6,1.25E-6,2.5E-6,List()),Leaf(3.75E-6,1.25E-6,2.5E-6,List()),Leaf(1.25E-6,3.75E-6,2.5E-6,List()),Leaf(3.75E-6,3.75E-6,2.5E-6,List(barneshut.package$Body@27ce24aa))) should be a Leaf [Lost Points] 2
+
   test("Empty.insert(b) should return a Leaf with only that body") {
     val quad = Empty(51f, 46.3f, 5f)
     val b = new Body(3f, 54f, 46f, 0f, 0f)
@@ -111,7 +123,16 @@ class BarnesHutSuite extends FunSuite {
     val res = sm(2, 3).size == 1 && sm(2, 3).find(_ == body).isDefined
     assert(res, s"Body not found in the right sector")
   }
+
+//    [Test Description] 'SectorMatrix.combine' should correctly combine two sector matrices of size 96 that contain some points in the same sector [Observed Error] ConcBuffer(barneshut.package$Body@384ad17b) had size 1 instead of expected size 2 bucket (6,1) should have size 2 [Lost Points] 2
+
+//    [Test Description] 'SectorMatrix.combine' should correctly combine two sector matrices of size 96 containing points: (12, 34), (23, 45), (56, 9), (8, 79), (5, 99) [Observed Error] res was false Body 3 not found in the right sector in combined sector matrix [Lost Points] 2
+
+//    [Test Description] 'computeSectorMatrix' should correctly add points to buckets given 7 points within a boundary of size 96 [Observed Error] res was false Body 1 not found in the right sector in the sector matrix [Lost Points] 2
+  
+//    [Test Description] 'SectorMatrix.+=' should add a body at (25,47) to the correct bucket of a sector matrix of size 100 [Observed Error] res was false Body not found in the right sector. Hint: sector sizes could be fractions [Lost Points] 2
 }
+
 
 object FloatOps {
   private val precisionThreshold = 1e-4
