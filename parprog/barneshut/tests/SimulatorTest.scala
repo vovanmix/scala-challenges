@@ -22,6 +22,8 @@ class SimulatorTest extends FunSuite {
     assert(boundaries2.maxY == 47)
   }
 
+//    [Test Description] 'mergeBoundaries' should correctly merge two boundaries [Observed Error] 45.0 equaled 45, but 89.0 did not equal 117 minX and maxX are not correctly updated [Lost Points] 2
+
   test("testUpdateBoundaries") {
     val boundaries1 = new Boundaries()
     boundaries1.minX = 22
@@ -70,6 +72,8 @@ class SimulatorTest extends FunSuite {
     assert(sm(2, 3).size == 3)
     assert(sm(2, 3).exists(_ == bodies.head))
   }
+
+//    [Test Description] 'computeSectorMatrix' should correctly work given 5 points within a boundary of size 96 when some points map to the same sector [Observed Error] ConcBuffer() had size 0 instead of expected size 1 bucket (0,2) should have size 1 [Lost Points] 2
 
   test("updateBodies"){
     val boundaries = new Boundaries()
