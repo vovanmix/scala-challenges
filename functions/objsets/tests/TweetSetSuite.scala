@@ -69,8 +69,6 @@ class TweetSetSuite extends FunSuite {
       if (curSets.isEmpty) acc
       else unionOfAllTweetSets(curSets.tail, acc.union(curSets.head))
 
-//    TweetReader.tweetSets.foreach( x => assert(size(x) == 100))
-
     val r = unionOfAllTweetSets(TweetReader.tweetSets, new Empty)
     assert(size(r) == 695)
   }
