@@ -77,6 +77,7 @@ object Huffman {
     */
   def times(chars: List[Char]): List[(Char, Int)] =
     chars.foldLeft( Map[Char, Int]() ) { (m, ch) => m + (ch -> (m.getOrElse(ch, 0) + 1)) }.toList
+//  chars.map(c => (c, chars.count(x => x==c))) distinct
 
 
   /**
@@ -235,8 +236,11 @@ object Huffman {
     * This function returns the bit sequence that represents the character `char` in
     * the code table `table`.
     */
-  def codeBits(table: CodeTable)(char: Char): List[Bit] =
-    table.filter( _._1 == char ).head._2
+  def codeBits(table: CodeTable)(char: Char): List[Bit] = table match {
+    case List()            => List()
+    case (c, list) :: rest => if (c == char) list else codeBits(rest)(char)
+  }
+//    table.filter( _._1 == char ).head._2
 
   /**
     * Given a code tree, create a code table which contains, for every character in the
@@ -246,20 +250,12 @@ object Huffman {
     * a valid code tree that can be represented as a code table. Using the code tables of the
     * sub-trees, think of how to build the code table for the entire tree.
     */
-  def convert(tree: CodeTree): CodeTable = tree match {
-    case Leaf(c, _) =>
-      List(c -> List())
-    case Fork(l, r, _, _) =>
-      val table = mergeCodeTables(convert(l), convert(r))
-      val left = (l match {
-        case Leaf(c, _) => List(c)
-        case Fork(_, _, c, _) => c
-      }).map{ c => (c, 0 :: codeBits(table)(c)) }
-      val right = (r match {
-        case Leaf(c, _) => List(c)
-        case Fork(_, _, c, _) => c
-      }).map{ c => (c, 1 :: codeBits(table)(c)) }
-      mergeCodeTables(mergeCodeTables(table, left), right)
+  def convert(tree: CodeTree): CodeTable = {
+      def recurse(tree: CodeTree, acc: CodeTable, bits: List[Bit]): CodeTable = tree match {
+        case Leaf(c, _)       => (c, bits.reverse) :: acc
+        case Fork(l, r, _, _) => mergeCodeTables(recurse(l, acc, 0 :: bits), recurse(r, acc, 1 :: bits))
+      }
+      recurse(tree, List(), List())
   }
 
   /**
@@ -267,9 +263,7 @@ object Huffman {
     * use it in the `convert` method above, this merge method might also do some transformations
     * on the two parameter code tables.
     */
-  def mergeCodeTables(a: CodeTable, b: CodeTable): CodeTable =
-    a ++ b
-//    b.foldLeft(a.toMap)( _ + _ ).toList
+  def mergeCodeTables(a: CodeTable, b: CodeTable): CodeTable = a ::: b
 
   /**
     * This function encodes `text` according to the code tree `tree`.
