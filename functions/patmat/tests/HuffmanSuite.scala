@@ -65,11 +65,41 @@ class HuffmanSuite extends FunSuite {
   }
 
 
-//  test("createCodeTree") {
-//    new TestTrees {
-//      assert((string2Chars _ andThen createCodeTree)("ababdadab") === t2)
-//    }
-//  }
+  //  test("createCodeTree") {
+  //    new TestTrees {
+  //      assert((string2Chars _ andThen createCodeTree)("ababdadab") === t2)
+  //    }
+  //  }
+
+  test("non-singleton tree is not a singleton") {
+    new TestTrees {
+      assert(singleton(List(t1,t2)) == false)
+    }
+  }
+
+
+  test("times: single character") {
+    new TestTrees {
+      assert(times(List('a')) === List(('a', 1)))
+    }
+  }
+
+  test("times: twice the same character") {
+    new TestTrees {
+      assert(times(List('a', 'a')) === List(('a', 2)))
+    }
+  }
+
+  test("times: different characters") {
+    new TestTrees {
+      val result = times(List('a', 'b', 'a', 'c'))
+      assert(result.size === 3)
+      assert(result.contains(('a', 2)))
+      assert(result.contains(('b', 1)))
+      assert(result.contains(('c', 1)))
+    }
+  }
+
 
   test("decode") {
     assert(decode(frenchCode, secret) === List('h', 'u', 'f', 'f', 'm', 'a', 'n', 'e', 's', 't', 'c', 'o', 'o', 'l'))
@@ -117,4 +147,16 @@ class HuffmanSuite extends FunSuite {
       assert(decode(t1, encode(t1)("ab".toList)) === "ab".toList)
     }
   }
+
+  test("quickEncode: encode then decode gives identity") {
+    val text = string2Chars("Will this work on the first try? No. Got the reversed text as a result ;-)")
+    val codeTree = createCodeTree(text)
+    val encodedText = quickEncode(codeTree)(text)
+    val decodedText = decode(codeTree, encodedText)
+    assert(decodedText === text)
+  }
+
+//  TODO: failed test
+//  test name: HuffmanSuite::combine of a singleton or nil::5
+//  java.util.NoSuchElementException: head of empty list
 }
