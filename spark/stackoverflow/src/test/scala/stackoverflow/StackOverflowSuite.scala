@@ -69,6 +69,38 @@ class StackOverflowSuite extends FunSuite with BeforeAndAfterAll {
     assert(result == answer)
   }
 
+  test("scoredPostings") {
+    assert(initializeStackOverflow(), " -- did you fill in all the values in StackOverflow (conf, sc, wikiRdd)?")
+    import StackOverflow._
+
+    val postings = List(
+      Posting(1, 123, None, None, 0, Some("Haskell")),
+      Posting(2, 124, None, Some(123), 2, Some("Haskell")),
+      Posting(1, 125, None, None, 0, Some("Haskell")),
+      Posting(2, 126, None, Some(123), 3, Some("Haskell")),
+      Posting(1, 127, None, Some(126), 23, Some("Haskell"))
+    )
+    val grouped = List(
+      (123, Iterable(
+        (postings.head, postings.tail.head),
+        (postings.head, postings.tail.tail.tail.head))),
+      (126, Iterable(
+        (postings.tail.tail.head, postings.tail.tail.tail.tail.head)))
+    )
+    val rdd = sc.parallelize(grouped)
+
+    val answer = Set(
+      (postings.head, 3),
+      (postings.tail.tail.head, 23)
+    )
+    val result = testObject
+      .scoredPostings(rdd)
+      .collect
+      .toSet
+
+    assert(result == answer)
+  }
+
   test("testObject can be instantiated") {
     val instantiatable = try {
       testObject

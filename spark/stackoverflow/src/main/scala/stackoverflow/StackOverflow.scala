@@ -21,6 +21,7 @@ object StackOverflow extends StackOverflow {
   def main(args: Array[String]): Unit = {
 
     val lines = sc.textFile("src/main/resources/stackoverflow/stackoverflow.csv")
+    // TODO: pipe!
     val raw = rawPostings(lines)
     val grouped = groupedPostings(raw)
     val scored = scoredPostings(grouped)
@@ -94,9 +95,11 @@ class StackOverflow extends Serializable {
 
 
   /** Compute the maximum score for each posting */
-  def scoredPostings(grouped: RDD[(Int, Iterable[(Posting, Posting)])]): RDD[(Posting, Int)] = {
+  def scoredPostings(grouped: RDD[(Int, Iterable[(Posting, Posting)])]):
+  RDD[(Posting, Int)] = {
 
     def answerHighScore(as: Array[Posting]): Int = {
+      // TODO: it should be pure!
       var highScore = 0
       var i = 0
       while (i < as.length) {
@@ -108,7 +111,11 @@ class StackOverflow extends Serializable {
       highScore
     }
 
-    ???
+    grouped.map {
+      case(_, thread) =>
+        val answers = thread.map{ case(_, a) => a }.toArray
+        (thread.head._1, answerHighScore(answers))
+    }
   }
 
 
