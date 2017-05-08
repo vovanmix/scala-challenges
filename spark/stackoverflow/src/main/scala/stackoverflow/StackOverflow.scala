@@ -112,8 +112,8 @@ class StackOverflow extends Serializable {
     }
 
     grouped.map {
-      case(_, thread) =>
-        val answers = thread.map{ case(_, a) => a }.toArray
+      case (_, thread) =>
+        val answers = thread.map { case (_, a) => a }.toArray
         (thread.head._1, answerHighScore(answers))
     }
   }
@@ -135,7 +135,19 @@ class StackOverflow extends Serializable {
       }
     }
 
-    ???
+    scored
+      .map {
+        case (posting, int) =>
+          // .get leads to runtime exc! Better to have some error logs
+          // and just ignore the record
+          val index = firstLangInTag(posting.tags, langs).get * langSpread
+          (index, int)
+      }
+      .groupByKey
+      .map {
+        case (index, ranks) =>
+          (index, ranks.max)
+      }
   }
 
 

@@ -78,7 +78,7 @@ class StackOverflowSuite extends FunSuite with BeforeAndAfterAll {
       Posting(2, 124, None, Some(123), 2, Some("Haskell")),
       Posting(1, 125, None, None, 0, Some("Haskell")),
       Posting(2, 126, None, Some(123), 3, Some("Haskell")),
-      Posting(1, 127, None, Some(126), 23, Some("Haskell"))
+      Posting(2, 127, None, Some(126), 23, Some("Haskell"))
     )
     val grouped = List(
       (123, Iterable(
@@ -95,6 +95,34 @@ class StackOverflowSuite extends FunSuite with BeforeAndAfterAll {
     )
     val result = testObject
       .scoredPostings(rdd)
+      .collect
+      .toSet
+
+    assert(result == answer)
+  }
+
+  test("vectorPostings") {
+    assert(initializeStackOverflow(), " -- did you fill in all the values in StackOverflow (conf, sc, wikiRdd)?")
+    import StackOverflow._
+
+    val postings = List(
+      Posting(1, 123, None, None, 0, Some("Haskell")),
+      Posting(1, 124, None, None, 0, Some("Haskell")),
+      Posting(1, 125, None, None, 0, Some("Ruby"))
+    )
+    val grouped = List(
+      (postings.head, 3),
+      (postings.tail.head, 5),
+      (postings.tail.tail.head, 23)
+    )
+    val rdd = sc.parallelize(grouped)
+
+    val answer = Set(
+      (550000, 5),
+      (300000, 23)
+    )
+    val result = testObject
+      .vectorPostings(rdd)
       .collect
       .toSet
 
