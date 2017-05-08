@@ -6,6 +6,8 @@ import org.apache.spark.SparkContext._
 import org.apache.spark.rdd.RDD
 import annotation.tailrec
 import scala.reflect.ClassTag
+//import scalaz._
+//import Scalaz._
 
 /** A raw stackoverflow posting, either a question or an answer */
 case class Posting(postingType: Int,
@@ -29,11 +31,18 @@ object StackOverflow extends StackOverflow {
 
     val lines =
       sc.textFile("src/main/resources/stackoverflow/stackoverflow.csv")
-    // TODO: pipe!
     val raw = rawPostings(lines)
     val grouped = groupedPostings(raw)
     val scored = scoredPostings(grouped)
     val vectors = vectorPostings(scored)
+
+//    val vectors =
+//      lines |>
+//        rawPostings |>
+//        groupedPostings |>
+//        scoredPostings |>
+//        vectorPostings
+
     assert(vectors.count() == 2121822,
       "Incorrect number of vectors: " + vectors.count())
 
@@ -118,16 +127,11 @@ class StackOverflow extends Serializable {
   RDD[(Posting, Int)] = {
 
     def answerHighScore(as: Array[Posting]): Int = {
-      // TODO: it should be pure!
-      var highScore = 0
-      var i = 0
-      while (i < as.length) {
-        val score = as(i).score
-        if (score > highScore)
-          highScore = score
-        i += 1
+      as.foldLeft(0) {
+        (highScore, posting) =>
+          if(posting.score > highScore) posting.score
+          else highScore
       }
-      highScore
     }
 
     grouped
