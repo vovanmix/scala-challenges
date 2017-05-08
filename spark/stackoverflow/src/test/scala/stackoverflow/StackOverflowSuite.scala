@@ -118,6 +118,7 @@ class StackOverflowSuite extends FunSuite with BeforeAndAfterAll {
     val rdd = sc.parallelize(grouped)
 
     val answer = Set(
+      (550000, 3),
       (550000, 5),
       (300000, 23)
     )

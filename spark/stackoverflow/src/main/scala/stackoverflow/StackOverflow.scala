@@ -26,7 +26,7 @@ object StackOverflow extends StackOverflow {
     val grouped = groupedPostings(raw)
     val scored = scoredPostings(grouped)
     val vectors = vectorPostings(scored)
-    //    assert(vectors.count() == 2121822, "Incorrect number of vectors: " + vectors.count())
+    assert(vectors.count() == 2121822, "Incorrect number of vectors: " + vectors.count())
 
     val means = kmeans(sampleVectors(vectors), vectors, debug = true)
     val results = clusterResults(means, vectors)
@@ -144,10 +144,9 @@ class StackOverflow extends Serializable {
       .filter { // or flatMap
         case (idx, _) => idx.isDefined
       }
-      .groupByKey
       .map {
-        case (index, ranks) =>
-          (index.get * langSpread, ranks.max)
+        case (index, int) =>
+          (index.get * langSpread, int)
       }
   }
 
