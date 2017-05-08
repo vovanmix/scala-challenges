@@ -17,7 +17,8 @@ class StackOverflowSuite extends FunSuite with BeforeAndAfterAll {
     override val langs =
       List(
         "JavaScript", "Java", "PHP", "Python", "C#", "C++", "Ruby", "CSS",
-        "Objective-C", "Perl", "Scala", "Haskell", "MATLAB", "Clojure", "Groovy")
+        "Objective-C", "Perl", "Scala", "Haskell",
+        "MATLAB", "Clojure", "Groovy")
 
     override def langSpread = 50000
 
@@ -38,14 +39,16 @@ class StackOverflowSuite extends FunSuite with BeforeAndAfterAll {
 
 
   override def afterAll(): Unit = {
-    assert(initializeStackOverflow(), " -- did you fill in all the values in StackOverflow (conf, sc, wikiRdd)?")
+    assert(initializeStackOverflow(), " -- did you fill in " +
+      "all the values in StackOverflow (conf, sc, wikiRdd)?")
     import StackOverflow._
     sc.stop()
   }
 
 
   test("groupedPostings") {
-    assert(initializeStackOverflow(), " -- did you fill in all the values in StackOverflow (conf, sc, wikiRdd)?")
+    assert(initializeStackOverflow(), " -- did you fill in " +
+      "all the values in StackOverflow (conf, sc, wikiRdd)?")
     import StackOverflow._
 
     val postings = List(
@@ -70,7 +73,8 @@ class StackOverflowSuite extends FunSuite with BeforeAndAfterAll {
   }
 
   test("scoredPostings") {
-    assert(initializeStackOverflow(), " -- did you fill in all the values in StackOverflow (conf, sc, wikiRdd)?")
+    assert(initializeStackOverflow(), " -- did you fill in " +
+      "all the values in StackOverflow (conf, sc, wikiRdd)?")
     import StackOverflow._
 
     val postings = List(
@@ -102,7 +106,8 @@ class StackOverflowSuite extends FunSuite with BeforeAndAfterAll {
   }
 
   test("vectorPostings") {
-    assert(initializeStackOverflow(), " -- did you fill in all the values in StackOverflow (conf, sc, wikiRdd)?")
+    assert(initializeStackOverflow(), " -- did you fill in " +
+      "all the values in StackOverflow (conf, sc, wikiRdd)?")
     import StackOverflow._
 
     val postings = List(
@@ -139,6 +144,4 @@ class StackOverflowSuite extends FunSuite with BeforeAndAfterAll {
     }
     assert(instantiatable, "Can't instantiate a StackOverflow object")
   }
-
-
 }

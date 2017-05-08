@@ -51,14 +51,16 @@ class StackOverflow extends Serializable {
   val langs =
     List(
       "JavaScript", "Java", "PHP", "Python", "C#", "C++", "Ruby", "CSS",
-      "Objective-C", "Perl", "Scala", "Haskell", "MATLAB", "Clojure", "Groovy")
+      "Objective-C", "Perl", "Scala", "Haskell",
+      "MATLAB", "Clojure", "Groovy")
 
   /** K-means parameter: How "far apart" languages should be
     * for the kmeans algorithm? */
   def langSpread = 50000
 
   assert(langSpread > 0,
-    "If langSpread is zero we can't recover the language from the input data!")
+    "If langSpread is zero we can't recover the language" +
+      " from the input data!")
 
   /** K-means parameter: Number of clusters */
   def kmeansKernels = 45
@@ -97,11 +99,17 @@ class StackOverflow extends Serializable {
       .map(p => (p.id, p))
     val answers = postings
       .filter(p => p.postingType == 2)
-      .map(p => (p.parentId.getOrElse(0), p))
+      .flatMap {
+        p =>
+          p.parentId match {
+            case Some(id) => Some(id, p)
+            case None => None
+          }
+      }
 
     questions
       .join(answers)
-      .groupByKey()
+      .groupByKey
   }
 
 
@@ -122,11 +130,13 @@ class StackOverflow extends Serializable {
       highScore
     }
 
-    grouped.map {
-      case (_, thread) =>
-        val answers = thread.map { case (_, a) => a }.toArray
-        (thread.head._1, answerHighScore(answers))
-    }
+    grouped
+      .flatMap(_._2)
+      .groupByKey
+      .mapValues {
+        answers =>
+          answerHighScore(answers.toArray)
+      }
   }
 
 
@@ -148,18 +158,15 @@ class StackOverflow extends Serializable {
     }
 
     scored
-      .map {
+      .flatMap {
         case (posting, int) =>
-          val index = firstLangInTag(posting.tags, langs)
-          (index, int)
+          firstLangInTag(posting.tags, langs) match {
+            case Some(langIndex) =>
+              Some(langIndex * langSpread, int)
+            case None => None
+          }
       }
-      .filter { // or flatMap
-        case (idx, _) => idx.isDefined
-      }
-      .map {
-        case (index, int) =>
-          (index.get * langSpread, int)
-      }
+      .cache
   }
 
 
@@ -167,7 +174,8 @@ class StackOverflow extends Serializable {
   def sampleVectors(vectors: RDD[(Int, Int)]): Array[(Int, Int)] = {
 
     assert(kmeansKernels % langs.length == 0,
-      "kmeansKernels should be a multiple of the number of languages studied.")
+      "kmeansKernels should be a multiple of the number " +
+        "of languages studied.")
     val perLang = kmeansKernels / langs.length
 
     // http://en.wikipedia.org/wiki/Reservoir_sampling
@@ -196,12 +204,12 @@ class StackOverflow extends Serializable {
     val res =
       if (langSpread < 500)
       // sample the space regardless of the language
-        vectors.takeSample(false, kmeansKernels, 42)
+        vectors.takeSample(withReplacement = false, kmeansKernels, 42)
       else
       // sample the space uniformly from each language partition
         vectors.groupByKey.flatMap({
-          case (lang, vectors) =>
-            reservoirSampling(lang, vectors.toIterator, perLang).map((lang, _))
+          case (lang, vs) =>
+            reservoirSampling(lang, vs.toIterator, perLang).map((lang, _))
         }).collect()
 
     assert(res.length == kmeansKernels, res.length)
@@ -221,16 +229,26 @@ class StackOverflow extends Serializable {
                             iter: Int = 1,
                             debug: Boolean = false):
   Array[(Int, Int)] = {
-    val newMeans =
+    val centroidsMap: Map[Int, (Int, Int)] =
       vectors
-        .map {
-          v => (findClosest(v, means), v)
-        }
+        .map { v => (findClosest(v, means), v) }
         .groupByKey
-        .map {
-          case (_, vs) => averageVectors(vs)
+        .mapValues {
+          averageVectors
         }
         .collect
+        .toMap
+
+    val newMeans =
+      means
+        .zipWithIndex
+        .map {
+          case(oldMean, idx) =>
+            centroidsMap.get(idx) match {
+              case Some(updatedMean) => updatedMean
+              case None => oldMean
+            }
+        }
 
     val distance = euclideanDistance(means, newMeans)
 
@@ -244,7 +262,9 @@ class StackOverflow extends Serializable {
         println(f"   ${means(idx).toString}%20s ==> ${
           newMeans(idx).toString
         }%20s  " +
-          f"  distance: ${euclideanDistance(means(idx), newMeans(idx))}%8.0f")
+          f"  distance: ${
+            euclideanDistance(means(idx), newMeans(idx))
+          }%8.0f")
     }
 
     if (converged(distance))
@@ -333,11 +353,39 @@ class StackOverflow extends Serializable {
     val median = closestGrouped.mapValues {
       vs =>
         // most common language in the cluster
-        val langLabel: String = ???
+        val langVal =
+          vs
+            .groupBy(_._1)
+            .map {
+              case (pt, sc) => (pt, sc.size)
+            }
+            .toList
+            .minBy(_._2)
+            ._1
+        val langLabel: String =
+          langs.apply(langVal / langSpread)
+
+        // size of the cluster (the number of questions it contains)
+        val clusterSize: Int =
+          vs.size
         // percent of the questions in the most common language
-        val langPercent: Double = ???
-        val clusterSize: Int = ???
-        val medianScore: Int = ???
+        val qsInLanSize =
+          vs.count(_._1 == langVal)
+        val langPercent: Double =
+          100.0 * (qsInLanSize / clusterSize)
+        // median of the highest answer scores
+        val scores =
+          vs
+            .map(_._2)
+            .toList
+            .sorted
+        val medianScore: Int =
+          if (scores.length % 2 != 0)
+            scores.apply(scores.length / 2)
+          else
+            (scores.apply(scores.length / 2) +
+              scores.apply(scores.length / 2 - 1)) / 2
+
 
         (langLabel, langPercent, clusterSize, medianScore)
     }
@@ -350,6 +398,7 @@ class StackOverflow extends Serializable {
     println("  Score  Dominant language (%percent)  Questions")
     println("================================================")
     for ((lang, percent, size, score) <- results)
-      println(f"${score}%7d  ${lang}%-17s (${percent}%-5.1f%%)      ${size}%7d")
+      println(f"${score}%7d  ${lang}%-17s (${percent}%-5.1f%%)" +
+        f"      ${size}%7d")
   }
 }
