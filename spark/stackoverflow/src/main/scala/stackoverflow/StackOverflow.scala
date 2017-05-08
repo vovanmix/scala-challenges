@@ -138,15 +138,16 @@ class StackOverflow extends Serializable {
     scored
       .map {
         case (posting, int) =>
-          // .get leads to runtime exc! Better to have some error logs
-          // and just ignore the record
-          val index = firstLangInTag(posting.tags, langs).get * langSpread
+          val index = firstLangInTag(posting.tags, langs)
           (index, int)
+      }
+      .filter { // or flatMap
+        case (idx, _) => idx.isDefined
       }
       .groupByKey
       .map {
         case (index, ranks) =>
-          (index, ranks.max)
+          (index.get * langSpread, ranks.max)
       }
   }
 
