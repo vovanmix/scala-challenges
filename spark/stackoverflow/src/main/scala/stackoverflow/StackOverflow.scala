@@ -8,25 +8,34 @@ import annotation.tailrec
 import scala.reflect.ClassTag
 
 /** A raw stackoverflow posting, either a question or an answer */
-case class Posting(postingType: Int, id: Int, acceptedAnswer: Option[Int], parentId: Option[Int], score: Int, tags: Option[String]) extends Serializable
+case class Posting(postingType: Int,
+                   id: Int,
+                   acceptedAnswer: Option[Int],
+                   parentId: Option[Int],
+                   score: Int,
+                   tags: Option[String]) extends Serializable
 
 
 /** The main class */
 object StackOverflow extends StackOverflow {
 
-  @transient lazy val conf: SparkConf = new SparkConf().setMaster("local").setAppName("StackOverflow")
-  @transient lazy val sc: SparkContext = new SparkContext(conf)
+  @transient lazy val conf: SparkConf =
+    new SparkConf().setMaster("local").setAppName("StackOverflow")
+  @transient lazy val sc: SparkContext =
+    new SparkContext(conf)
 
   /** Main function */
   def main(args: Array[String]): Unit = {
 
-    val lines = sc.textFile("src/main/resources/stackoverflow/stackoverflow.csv")
+    val lines =
+      sc.textFile("src/main/resources/stackoverflow/stackoverflow.csv")
     // TODO: pipe!
     val raw = rawPostings(lines)
     val grouped = groupedPostings(raw)
     val scored = scoredPostings(grouped)
     val vectors = vectorPostings(scored)
-    assert(vectors.count() == 2121822, "Incorrect number of vectors: " + vectors.count())
+    assert(vectors.count() == 2121822,
+      "Incorrect number of vectors: " + vectors.count())
 
     val means = kmeans(sampleVectors(vectors), vectors, debug = true)
     val results = clusterResults(means, vectors)
@@ -44,10 +53,12 @@ class StackOverflow extends Serializable {
       "JavaScript", "Java", "PHP", "Python", "C#", "C++", "Ruby", "CSS",
       "Objective-C", "Perl", "Scala", "Haskell", "MATLAB", "Clojure", "Groovy")
 
-  /** K-means parameter: How "far apart" languages should be for the kmeans algorithm? */
+  /** K-means parameter: How "far apart" languages should be
+    * for the kmeans algorithm? */
   def langSpread = 50000
 
-  assert(langSpread > 0, "If langSpread is zero we can't recover the language from the input data!")
+  assert(langSpread > 0,
+    "If langSpread is zero we can't recover the language from the input data!")
 
   /** K-means parameter: Number of clusters */
   def kmeansKernels = 45
@@ -122,7 +133,8 @@ class StackOverflow extends Serializable {
   /** Compute the vectors for the kmeans */
   def vectorPostings(scored: RDD[(Posting, Int)]): RDD[(Int, Int)] = {
     /** Return optional index of first language that occurs in `tags`. */
-    def firstLangInTag(tag: Option[String], ls: List[String]): Option[Int] = {
+    def firstLangInTag(tag: Option[String], ls: List[String]):
+    Option[Int] = {
       if (tag.isEmpty) None
       else if (ls.isEmpty) None
       else if (tag.get == ls.head) Some(0) // index: 0
@@ -154,11 +166,13 @@ class StackOverflow extends Serializable {
   /** Sample the vectors */
   def sampleVectors(vectors: RDD[(Int, Int)]): Array[(Int, Int)] = {
 
-    assert(kmeansKernels % langs.length == 0, "kmeansKernels should be a multiple of the number of languages studied.")
+    assert(kmeansKernels % langs.length == 0,
+      "kmeansKernels should be a multiple of the number of languages studied.")
     val perLang = kmeansKernels / langs.length
 
     // http://en.wikipedia.org/wiki/Reservoir_sampling
-    def reservoirSampling(lang: Int, iter: Iterator[Int], size: Int): Array[Int] = {
+    def reservoirSampling(lang: Int, iter: Iterator[Int], size: Int):
+    Array[Int] = {
       val res = new Array[Int](size)
       val rnd = new util.Random(lang)
 
@@ -186,7 +200,8 @@ class StackOverflow extends Serializable {
       else
       // sample the space uniformly from each language partition
         vectors.groupByKey.flatMap({
-          case (lang, vectors) => reservoirSampling(lang, vectors.toIterator, perLang).map((lang, _))
+          case (lang, vectors) =>
+            reservoirSampling(lang, vectors.toIterator, perLang).map((lang, _))
         }).collect()
 
     assert(res.length == kmeansKernels, res.length)
@@ -201,10 +216,22 @@ class StackOverflow extends Serializable {
   //
 
   /** Main kmeans computation */
-  @tailrec final def kmeans(means: Array[(Int, Int)], vectors: RDD[(Int, Int)], iter: Int = 1, debug: Boolean = false): Array[(Int, Int)] = {
-    val newMeans = means.clone() // you need to compute newMeans
+  @tailrec final def kmeans(means: Array[(Int, Int)],
+                            vectors: RDD[(Int, Int)],
+                            iter: Int = 1,
+                            debug: Boolean = false):
+  Array[(Int, Int)] = {
+    val newMeans =
+      vectors
+        .map {
+          v => (findClosest(v, means), v)
+        }
+        .groupByKey
+        .map {
+          case (_, vs) => averageVectors(vs)
+        }
+        .collect
 
-    // TODO: Fill in the newMeans array
     val distance = euclideanDistance(means, newMeans)
 
     if (debug) {
@@ -214,7 +241,9 @@ class StackOverflow extends Serializable {
            |  * desired distance: $kmeansEta
            |  * means:""".stripMargin)
       for (idx <- 0 until kmeansKernels)
-        println(f"   ${means(idx).toString}%20s ==> ${newMeans(idx).toString}%20s  " +
+        println(f"   ${means(idx).toString}%20s ==> ${
+          newMeans(idx).toString
+        }%20s  " +
           f"  distance: ${euclideanDistance(means(idx), newMeans(idx))}%8.0f")
     }
 
@@ -248,7 +277,8 @@ class StackOverflow extends Serializable {
   }
 
   /** Return the euclidean distance between two points */
-  def euclideanDistance(a1: Array[(Int, Int)], a2: Array[(Int, Int)]): Double = {
+  def euclideanDistance(a1: Array[(Int, Int)], a2: Array[(Int, Int)]):
+  Double = {
     assert(a1.length == a2.length)
     var sum = 0d
     var idx = 0
@@ -295,17 +325,21 @@ class StackOverflow extends Serializable {
   //  Displaying results:
   //
   //
-  def clusterResults(means: Array[(Int, Int)], vectors: RDD[(Int, Int)]): Array[(String, Double, Int, Int)] = {
+  def clusterResults(means: Array[(Int, Int)], vectors: RDD[(Int, Int)]):
+  Array[(String, Double, Int, Int)] = {
     val closest = vectors.map(p => (findClosest(p, means), p))
     val closestGrouped = closest.groupByKey()
 
-    val median = closestGrouped.mapValues { vs =>
-      val langLabel: String = ??? // most common language in the cluster
-    val langPercent: Double = ??? // percent of the questions in the most common language
-    val clusterSize: Int = ???
-      val medianScore: Int = ???
+    val median = closestGrouped.mapValues {
+      vs =>
+        // most common language in the cluster
+        val langLabel: String = ???
+        // percent of the questions in the most common language
+        val langPercent: Double = ???
+        val clusterSize: Int = ???
+        val medianScore: Int = ???
 
-      (langLabel, langPercent, clusterSize, medianScore)
+        (langLabel, langPercent, clusterSize, medianScore)
     }
 
     median.collect().map(_._2).sortBy(_._4)
