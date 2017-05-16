@@ -83,7 +83,7 @@ object TimeUsage {
     * @param line Raw fields
     */
   def row(line: List[String]): Row =
-    Row(
+    Row.fromSeq(
       line.headOption.getOrElse("")
         :: line.tail.map(_.toDouble)
     )
@@ -103,11 +103,10 @@ object TimeUsage {
     *      “t10”, “t12”, “t13”, “t14”, “t15”, “t16” and “t18” (those which are not part of the previous groups only).
     */
   def classifiedColumns(columnNames: List[String]): (List[Column], List[Column], List[Column]) = {
-
     //    val list: List[List[Column]] = List(
-    //      List("t01", "t03", "t11", "t1801", "t1803"),
-    //      List("t05", "t1805"),
-    //      List("t02", "t04", "t06", "t07", "t08", "t09", "t10", "t12", "t13", "t14", "t15", "t16", "t18")
+    //      primary,
+    //      working,
+    //      leisure
     //    ).map {
     //      _.flatMap {
     //        prefix =>
@@ -118,30 +117,20 @@ object TimeUsage {
     //    list match {
     //      case a :: b :: c => (a, b, c.head)
     //    }
+    val primary = List("t01", "t03", "t11", "t1801", "t1803")
+    val working = List("t05", "t1805")
+    val leisure = List(
+      "t02", "t04", "t06", "t07", "t08", "t09", "t10",
+      "t12", "t13", "t14", "t15", "t16", "t18"
+    )
 
     columnNames.foldLeft(List[Column](), List[Column](), List[Column]()) {
       case ((a, b, c), name) =>
         name match {
-          case n if n.startsWith("t01") => (a :+ col(n), b, c)
-          case n if n.startsWith("t03") => (a :+ col(n), b, c)
-          case n if n.startsWith("t11") => (a :+ col(n), b, c)
-          case n if n.startsWith("t1801") => (a :+ col(n), b, c)
-          case n if n.startsWith("t1803") => (a :+ col(n), b, c)
-          case n if n.startsWith("t05") => (a, b :+ col(n), c)
-          case n if n.startsWith("t1805") => (a, b :+ col(n), c)
-          case n if n.startsWith("t02") => (a, b, c :+ col(n))
-          case n if n.startsWith("t04") => (a, b, c :+ col(n))
-          case n if n.startsWith("t06") => (a, b, c :+ col(n))
-          case n if n.startsWith("t07") => (a, b, c :+ col(n))
-          case n if n.startsWith("t08") => (a, b, c :+ col(n))
-          case n if n.startsWith("t09") => (a, b, c :+ col(n))
-          case n if n.startsWith("t10") => (a, b, c :+ col(n))
-          case n if n.startsWith("t12") => (a, b, c :+ col(n))
-          case n if n.startsWith("t13") => (a, b, c :+ col(n))
-          case n if n.startsWith("t14") => (a, b, c :+ col(n))
-          case n if n.startsWith("t15") => (a, b, c :+ col(n))
-          case n if n.startsWith("t16") => (a, b, c :+ col(n))
-          case n if n.startsWith("t18") => (a, b, c :+ col(n))
+          case n if primary.exists(n.startsWith) =>(a :+ col(n), b, c)
+          case n if working.exists(n.startsWith) => (a, b :+ col(n), c)
+          case n if leisure.exists(n.startsWith) => (a, b, c :+ col(n))
+          case _ => (a, b, c)
         }
     }
   }
@@ -181,13 +170,24 @@ object TimeUsage {
                         otherColumns: List[Column],
                         df: DataFrame
                       ): DataFrame = {
-    val workingStatusProjection: Column = ???
-    val sexProjection: Column = ???
-    val ageProjection: Column = ???
+    val workingStatusProjection: Column =
+      when($"telfs" < 3, "working")
+        .otherwise("not working") as "working"
+    val sexProjection: Column =
+      when($"tesex" === 1, "male")
+        .otherwise("female") as "sex"
+    val ageProjection: Column =
+      when($"teage" <= 22, "young")
+        .when($"teage" <= 55, "active")
+        .otherwise("elder") as "age"
 
-    val primaryNeedsProjection: Column = ???
-    val workProjection: Column = ???
-    val otherProjection: Column = ???
+    val primaryNeedsProjection: Column =
+      primaryNeedsColumns.reduce(_ + _) / lit("60") as "primaryNeeds"
+    val workProjection: Column =
+      workColumns.reduce(_ + _) / "60" as "work"
+    val otherProjection: Column =
+      otherColumns.reduce(_ + _) / "60" as "other"
+
     df
       .select(workingStatusProjection, sexProjection, ageProjection, primaryNeedsProjection, workProjection, otherProjection)
       .where($"telfs" <= 4) // Discard people who are not in labor force
@@ -211,7 +211,13 @@ object TimeUsage {
     *               Finally, the resulting DataFrame should be sorted by working status, sex and age.
     */
   def timeUsageGrouped(summed: DataFrame): DataFrame = {
-    ???
+    summed.groupBy($"working", $"sex", $"age")
+      .agg(
+        round(avg($"primaryNeeds"), 1) as "primaryNeeds",
+        round(avg($"work"), 1) as "work",
+        round(avg($"other"), 1) as "other"
+      )
+      .orderBy($"working", $"sex", $"age")
   }
 
   /**
@@ -228,7 +234,14 @@ object TimeUsage {
     * @param viewName Name of the SQL view to use
     */
   def timeUsageGroupedSqlQuery(viewName: String): String =
-    ???
+    "SELECT " +
+      "working, sex, age, " +
+      "ROUND(AVG(primaryNeeds), 1) as primaryNeeds, " +
+      "ROUND(AVG(work), 1) as work, " +
+      "ROUND(AVG(other), 1) as other " +
+        s"FROM $viewName " +
+        "GROUP BY working, sex, age " +
+        "ORDER BY working, sex, age"
 
   /**
     * @return A `Dataset[TimeUsageRow]` from the “untyped” `DataFrame`
@@ -238,7 +251,16 @@ object TimeUsage {
     *                           cast them at the same time.
     */
   def timeUsageSummaryTyped(timeUsageSummaryDf: DataFrame): Dataset[TimeUsageRow] =
-    ???
+    timeUsageSummaryDf.map {
+      row => TimeUsageRow(
+        row.getAs[String]("working"),
+        row.getAs[String]("sex"),
+        row.getAs[String]("age"),
+        row.getAs[Double]("primaryNeeds"),
+        row.getAs[Double]("work"),
+        row.getAs[Double]("other")
+      )
+    }
 
   /**
     * @return Same as `timeUsageGrouped`, but using the typed API when possible
@@ -252,10 +274,19 @@ object TimeUsage {
     *               Hint: you should use the `groupByKey` and `typed.avg` methods.
     */
   def timeUsageGroupedTyped(summed: Dataset[TimeUsageRow]): Dataset[TimeUsageRow] = {
-
     import org.apache.spark.sql.expressions.scalalang.typed
-
-    ???
+    summed
+      .groupByKey(t => (t.working, t.sex, t.age))
+      .agg(
+        round(avg($"primaryNeeds"), 1).as("primaryNeeds").as[Double],
+        round(avg($"work"), 1).as("work").as[Double],
+        round(avg($"other"), 1).as("other").as[Double]
+      )
+      .map {
+        case ((working, sex, age), primaryNeeds, work, other) =>
+          TimeUsageRow(working, sex, age, primaryNeeds, work, other)
+      }
+      .orderBy($"working", $"sex", $"age")
   }
 }
 
